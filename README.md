@@ -1,3 +1,8 @@
+<p align="right">
+  <a href="README.ru.md">🇷🇺 Читать по‑русски</a> |
+  <a href="README.md">🇬🇧 English</a>
+</p>
+
 # Obsidian PTTJS Viewer
 
 A plugin that renders PTTJS (Plain Text Table JavaScript) tables inside [Obsidian](https://obsidian.md).
