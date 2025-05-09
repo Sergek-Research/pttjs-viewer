@@ -5,6 +5,6 @@
   "minAppVersion": "0.15.0",
   "description": "Visualize PTTJS (Plain Text Table JavaScript) data in Obsidian",
   "author": "Konstantin Kolomeitsev",
-  "authorUrl": "https://github.com/yourusername",
+  "authorUrl": "https://github.com/Sergek-Research/obsidian-pttjs-viewer",
   "isDesktopOnly": false
 }
