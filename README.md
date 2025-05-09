@@ -1,37 +1,49 @@
-# Obsidian PTTJS Viewer
+# Obsidian PTTJS Viewer
 
-Плагин для визуализации таблиц PTTJS (Plain Text Table JavaScript) в [Obsidian](https://obsidian.md).
+A plugin that renders PTTJS (Plain Text Table JavaScript) tables inside [Obsidian](https://obsidian.md).
 
-## Установка
+## Installation
 
-### Из репозитория
+### From this repository
 
-1. Клонируйте этот репозиторий в папку `.obsidian/plugins/pttjs-viewer` вашего хранилища Obsidian
-2. Установите зависимости: `npm install`
-3. Соберите плагин: `npm run build`
-4. Перезапустите Obsidian
-5. Включите плагин в настройках Obsidian
+1. Clone the repository into your vault’s `.obsidian/plugins/pttjs-viewer` folder.
+2. Install dependencies:
 
-## Использование
+   ```bash
+   npm install
+   ```
 
-Создайте блок кода с языком `pttjs` и добавьте туда ваши данные в формате PTTJS:
+3. Build the plugin:
+
+   ```bash
+   npm run build
+   ```
+
+4. Restart Obsidian.
+5. Enable **Obsidian PTTJS Viewer** in _Settings → Community Plugins_.
+
+## Usage
+
+Create a code block with the language set to `pttjs`, then paste your PTTJS data inside it:
 
 ````markdown
 ```pttjs
 |PTTJS 1.0|encoding=UTF-8|
-|H>Имя|H>Возраст|H>Профессия<|
-|>Иван|>30|>Программист<|
-|>Мария|>28|>Дизайнер<|
-|>Алексей|>35|>Менеджер<|
+|H>Name|H>Age|H>Profession<|
+|>Ivan|>30|>Programmer<|
+|>Maria|>28|>Designer<|
+|>Alexey|>35|>Manager<|
 ```
 ````
 
-## Разработка
+The plugin will automatically render the table in preview mode.
 
-- `npm run dev` - запуск режима разработки с автоматической пересборкой
-- `npm run build` - сборка для production
-- `npm version patch` - обновление версии
+## Development
 
-## Лицензия
+- `npm run dev` – start the development watcher with automatic rebuilds.
+- `npm run build` – build an optimized production version.
+- `npm version patch` – bump the patch version.
 
-[MIT](LICENSE)
+## License
+
+Released under the [MIT License](LICENSE).

@@ -1,57 +1,57 @@
-# Примеры использования PTTJS в Obsidian
+# PTTJS Usage Examples in Obsidian
 
-Ниже представлены примеры таблиц в формате PTTJS, которые будут корректно отображаться в Obsidian после установки плагина.
+Below are sample PTTJS tables that will render correctly in Obsidian once the plugin is installed.
 
-## Простая таблица
+## Simple table
 
 ```pttjs
 |PTTJS 1.0|encoding=UTF-8|
-|H>Имя|H>Возраст|H>Профессия<|
-|>Иван|>30|>Программист<|
-|>Мария|>28|>Дизайнер<|
-|>Алексей|>35|>Менеджер<|
+|H>Name|H>Age|H>Profession<|
+|>Ivan|>30|>Programmer<|
+|>Maria|>28|>Designer<|
+|>Alexey|>35|>Manager<|
 ```
 
-## Таблица с объединёнными ячейками
+## Table with merged cells
 
 ```pttjs
 |PTTJS 1.0|encoding=UTF‑8|
-|H(1|2)>Номер машины|H(2|1)>Данные о машине|H><|
-|H>|H>Год выпуска|H>Марка модель<|
-|>080XXX02|>2007|>LEXUS RX 350<|
-|>787XXX16|>2015|>GEELY GC7<|
-|>871XXX05|>1997|>TOYOTA IPSUM<|
-|>A602XXX|>1996|>MITSUBISHI PAJERO<|
-|>890XXX02|>1997|>TOYOTA LAND CRUISER PRADO<|
-|>216XXX13|>2007|>DAEWOO NEXIA<|
+|H(1|2)>Plate No.|H(2|1)>Vehicle Info|H><|
+|H>|H>Year|H>Make & Model<|
+|>080XXX02|>2007|>LEXUS RX 350<|
+|>787XXX16|>2015|>GEELY GC7<|
+|>871XXX05|>1997|>TOYOTA IPSUM<|
+|>A602XXX|>1996|>MITSUBISHI PAJERO<|
+|>890XXX02|>1997|>TOYOTA LAND CRUISER PRADO<|
+|>216XXX13|>2007|>DAEWOO NEXIA<|
 ```
 
-## Многостраничная таблица
+## Multi‑page table
 
 ```pttjs
 |PTTJS 1.0|encoding=UTF-8|
-|(@page1|Сотрудники){
-|H>ID|H>Имя|H>Отдел<|
-|>1|>Иван|>IT<|
-|>2|>Мария|>Маркетинг<|
+|(@page1|Employees){
+|H>ID|H>Name|H>Department<|
+|>1|>Ivan|>IT<|
+|>2|>Maria|>Marketing<|
 }|
-|(@page2|Отделы){
-|H>ID|H>Название|H>Руководитель<|
-|>1|>IT|>Алексей<|
-|>2|>Маркетинг|>Елена<|
+|(@page2|Departments){
+|H>ID|H>Department|H>Head<|
+|>1|>IT|>Alexey<|
+|>2|>Marketing|>Elena<|
 }|
 ```
 
-## Стилизованная таблица
+## Styled table
 
-Скоро будет поддерживаться в будущих версиях плагина:
+Scheduled for support in future plugin versions:
 
 ```pttjs
 |PTTJS 1.0|encoding=UTF-8|
-|H>Метрика|H>Значение|H>Статус<|
-|>Продажи|>1250|>Хорошо<|
-|>Расходы|>980|>Норма<|
-|>Прибыль|>270|>Низко<|
+|H>Metric|H>Value|H>Status<|
+|>Sales|>1250|>Good<|
+|>Expenses|>980|>Normal<|
+|>Profit|>270|>Low<|
 >>>SCRIPT
 (0|2)<=BACKGROUND(#e6ffe6)
 (1|2)<=BACKGROUND(#ffffcc)
@@ -59,14 +59,14 @@
 <<<SCRIPT
 ```
 
-## Как это работает
+## How it works
 
-1. Плагин автоматически распознает блоки кода с языком `pttjs`.
-2. Происходит парсинг и визуализация таблицы с использованием библиотеки PTTJS.
-3. Визуализированная таблица отображается вместо исходного текста.
+1. The plugin automatically detects code blocks with the `pttjs` language tag.
+2. It parses the content and renders the table using the PTTJS library.
+3. In preview mode, the rendered table replaces the original block.
 
-## Полезные ссылки
+## Useful links
 
-- [Документация по формату PTTJS](https://github.com/Sergek-Research/PTTJS/blob/main/docs/PTTJS_FORMAT_SPECIFICATION.md)
-- [Библиотека PTTJS на npm](https://www.npmjs.com/package/@sergek-research/pttjs)
-- [Репозиторий библиотеки PTTJS](https://github.com/Sergek-Research/PTTJS)
+- [PTTJS Format Specification](https://github.com/Sergek-Research/PTTJS/blob/main/docs/PTTJS_FORMAT_SPECIFICATION.md)
+- [PTTJS library on npm](https://www.npmjs.com/package/@sergek-research/pttjs)
+- [PTTJS GitHub repository](https://github.com/Sergek-Research/PTTJS)
