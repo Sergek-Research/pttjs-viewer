@@ -1,0 +1,63 @@
+/* styles.css */
+.pttjs-container {
+    margin: 1em 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.pttjs-page {
+    margin-bottom: 2em;
+}
+
+.pttjs-page-title {
+    margin-bottom: 0.5em;
+    font-weight: bold;
+}
+
+.pttjs-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 1em;
+    overflow: auto;
+}
+
+.pttjs-table th,
+.pttjs-table td {
+    border: 1px solid var(--background-modifier-border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.pttjs-table th {
+    background-color: var(--background-secondary);
+    font-weight: bold;
+}
+
+.pttjs-cell-index {
+    color: var(--text-faint);
+    font-size: 0.8em;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.pttjs-cell-value {
+    word-break: break-word;
+}
+
+/* Стилизация для темной темы */
+.theme-dark .pttjs-table th {
+    background-color: var(--background-secondary-alt);
+}
+
+/* Стилизация для светлой темы */
+.theme-light .pttjs-table th {
+    background-color: var(--background-secondary);
+}
+
+/* Анимация при наведении на ячейки */
+.pttjs-table td:hover,
+.pttjs-table th:hover {
+    background-color: var(--background-modifier-hover);
+    transition: background-color 0.2s ease;
+}

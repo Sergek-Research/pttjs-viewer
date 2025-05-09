@@ -1,0 +1,10 @@
+{
+  "id": "pttjs-viewer",
+  "name": "PTTJS Viewer",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Visualize PTTJS (Plain Text Table JavaScript) data in Obsidian",
+  "author": "Konstantin Kolomeitsev",
+  "authorUrl": "https://github.com/yourusername",
+  "isDesktopOnly": false
+}
