@@ -34,7 +34,8 @@ export default class PTTJSPlugin extends Plugin {
 	currentEditor: Editor | null = null;
 	currentSourcePosition: { start: number, end: number } | null = null;
 	currentPTTJSData: Store | null = null;
-	focusedCellIndex: string | null = null;
+	// Сохраняем ссылку на контейнер текущей таблицы
+	currentTableContainer: HTMLElement | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -71,6 +72,10 @@ export default class PTTJSPlugin extends Plugin {
 
 				const pttjsData = await parse(source);
 				this.currentPTTJSData = pttjsData;
+				
+				// Сохраняем ссылку на контейнер
+				this.currentTableContainer = el;
+				
 				this.renderPTTJSTable(pttjsData, el, source);
 			} catch (error) {
 				console.error('PTTJS parse error:', error);
@@ -164,41 +169,8 @@ export default class PTTJSPlugin extends Plugin {
 		// Обновляем значение ячейки
 		this.currentPTTJSData.data[pageId].rows[rowIndex][cellIndex].value = newValue;
 		
-		// Сохраняем текущую позицию прокрутки и активный элемент
-		const scrollPosition = {
-			top: window.scrollY,
-			left: window.scrollX
-		};
-		const activeElement = document.activeElement;
-		const activeElementRect = activeElement instanceof HTMLElement ? 
-			activeElement.getBoundingClientRect() : null;
-		
 		// Сериализуем обновленную Store обратно в текст
 		serialize(this.currentPTTJSData).then((newSource) => { this.updateSourceText(newSource); });
-		
-		// Восстанавливаем позицию прокрутки и пытаемся восстановить фокус
-		window.setTimeout(() => {
-			// Восстанавливаем позицию прокрутки
-			window.scrollTo(scrollPosition.left, scrollPosition.top);
-			
-			// Пытаемся найти ячейку с тем же индексом
-			if (activeElementRect) {
-				const elementsAtPoint = document.elementsFromPoint(
-					activeElementRect.left + activeElementRect.width / 2,
-					activeElementRect.top + activeElementRect.height / 2
-				);
-				
-				// Ищем ячейку с тем же data-index
-				const newCell = Array.from(elementsAtPoint).find(el => 
-					el instanceof HTMLElement && 
-					el.getAttribute('data-index') === indexString
-				);
-				
-				if (newCell instanceof HTMLElement) {
-					newCell.focus();
-				}
-			}
-		}, 50);
 	}
 
 	// Добавление новой строки в таблицу
@@ -207,12 +179,6 @@ export default class PTTJSPlugin extends Plugin {
 		
 		const page = this.currentPTTJSData.data[pageId];
 		if (!page.rows) return;
-		
-		// Сохраняем позицию прокрутки
-		const scrollPosition = {
-			top: window.scrollY,
-			left: window.scrollX
-		};
 		
 		// Определяем количество ячеек в новой строке
 		const cellsCount = page.rows.length > 0 ? page.rows[0].length : 1;
@@ -231,12 +197,6 @@ export default class PTTJSPlugin extends Plugin {
 		
 		// Сериализуем обновленную Store обратно в текст
 		serialize(this.currentPTTJSData).then((newSource) => { this.updateSourceText(newSource); });
-		
-		// Восстанавливаем позицию прокрутки с небольшой поправкой вниз 
-		// для учета новой строки
-		window.setTimeout(() => {
-			window.scrollTo(scrollPosition.left, scrollPosition.top + 30);
-		}, 50);
 	}
 
 	// Добавление нового столбца в таблицу
@@ -245,12 +205,6 @@ export default class PTTJSPlugin extends Plugin {
 		
 		const page = this.currentPTTJSData.data[pageId];
 		if (!page.rows) return;
-		
-		// Сохраняем позицию прокрутки
-		const scrollPosition = {
-			top: window.scrollY,
-			left: window.scrollX
-		};
 		
 		// Добавляем новую ячейку в каждую строку после указанного индекса
 		page.rows.forEach((row, rowIndex) => {
@@ -267,11 +221,6 @@ export default class PTTJSPlugin extends Plugin {
 		
 		// Сериализуем обновленную Store обратно в текст
 		serialize(this.currentPTTJSData).then((newSource) => { this.updateSourceText(newSource); });
-		
-		// Восстанавливаем позицию прокрутки
-		window.setTimeout(() => {
-			window.scrollTo(scrollPosition.left, scrollPosition.top);
-		}, 50);
 	}
 
 	// Объединение ячеек
@@ -355,12 +304,13 @@ export default class PTTJSPlugin extends Plugin {
 
 		// Сохраняем ссылку на текущий элемент контейнера для последующего восстановления фокуса
 		const currentActiveElement = document.activeElement;
+		let focusedCellIndex: string | null = null;
 		
 		// Если активный элемент находится внутри ячейки таблицы, сохраним его индекс
 		if (currentActiveElement instanceof HTMLElement) {
 			const closestCell = currentActiveElement.closest('.pttjs-cell');
 			if (closestCell instanceof HTMLElement) {
-				this.focusedCellIndex = closestCell.getAttribute('data-index');
+				focusedCellIndex = closestCell.getAttribute('data-index');
 			}
 		}
 
