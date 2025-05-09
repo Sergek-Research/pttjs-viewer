@@ -1,5 +1,10 @@
 import { Plugin, MarkdownView, Notice, PluginSettingTab, App, Setting } from 'obsidian';
 import { parse, Store } from '@sergek-research/pttjs';
+import { CellItem } from '@sergek-research/pttjs/dist/parser';
+
+interface CellItemWithIndex extends CellItem {
+	indexString: string;
+}
 
 // Интерфейс для настроек плагина
 interface PTTJSPluginSettings {
@@ -9,8 +14,17 @@ interface PTTJSPluginSettings {
 
 // Значения настроек по умолчанию
 const DEFAULT_SETTINGS: PTTJSPluginSettings = {
-	showHeaders: true,
+	showHeaders: false,
 	showIndices: false
+}
+
+interface IgnoreRowCell { [key:string]: number[] }
+
+function addIgnoreRowCellItem(indexCell: number, indexRow: number, ignoreObj: IgnoreRowCell) {
+	if (!Array.isArray(ignoreObj[`r${indexRow}`])) {
+		ignoreObj[`r${indexRow}`] = [];
+	}
+	ignoreObj[`r${indexRow}`].push(indexCell);
 }
 
 export default class PTTJSPlugin extends Plugin {
@@ -54,16 +68,19 @@ export default class PTTJSPlugin extends Plugin {
 		// Создаем контейнер для таблиц PTTJS
 		const pttjsContainer = containerEl.createDiv({ cls: 'pttjs-container' });
 
+		const pagesCount = Object.keys(pttjsData.data).length;
+
 		// Для каждой страницы (листа) в данных PTTJS
 		for (const pageId in pttjsData.data) {
 			const page = pttjsData.data[pageId];
 			const { title, rows } = page;
+			let normalizedRows: CellItemWithIndex[][] = [];
 
 			// Создаем контейнер для отдельного листа
 			const pageContainer = pttjsContainer.createDiv({ cls: 'pttjs-page' });
 			
 			// Добавляем заголовок листа, если он есть
-			if (title && this.settings.showHeaders) {
+			if (title && (this.settings.showHeaders || pagesCount > 1)) {
 				pageContainer.createEl('h4', { 
 					text: title,
 					cls: 'pttjs-page-title'
@@ -76,7 +93,43 @@ export default class PTTJSPlugin extends Plugin {
 
 			// Создаем строки и ячейки
 			if (rows && Array.isArray(rows)) {
-				rows.forEach((row, rowIndex) => {
+				// Предварительная обработка ячеек, для colspan и rowspan
+				const ignoreRowCell: IgnoreRowCell = {};
+				rows.forEach((oldRow, oldRowIndex) => {
+					if (Array.isArray(oldRow)) {
+						const newRow: CellItemWithIndex[] = [];
+						oldRow.forEach((oldCell, oldCellIndex) => {
+							if (!ignoreRowCell[`r${oldRowIndex}`]?.includes(oldCellIndex)) {
+								const newCell: CellItemWithIndex = {
+									id: oldCell.id,
+									value: oldCell.value,
+									scale: oldCell.scale,
+									index: oldCell.index,
+									isHeader: oldCell.isHeader,
+									indexString: `${oldCellIndex};${oldRowIndex}`
+								}
+								newRow.push(newCell);
+								if (Array.isArray(oldCell.scale) && oldCell.scale.length > 1) {
+									if (oldCell.scale[0] > 1) {
+										const ignoreCellLength = oldCell.scale[0] - 1;
+										for (let ignoreIndex = 0; ignoreIndex < ignoreCellLength; ignoreIndex++) {
+											addIgnoreRowCellItem(oldCellIndex+ignoreIndex+1,oldRowIndex,ignoreRowCell);
+										}
+									}
+									if (oldCell.scale[1] > 1) {
+										const ignoreRowLength = oldCell.scale[1] - 1;
+										for (let ignoreIndex = 0; ignoreIndex < ignoreRowLength; ignoreIndex++) {
+											addIgnoreRowCellItem(oldCellIndex,oldRowIndex+ignoreIndex+1,ignoreRowCell);
+										}
+									}
+								}
+							}
+						})
+						normalizedRows.push(newRow);
+					}
+				})
+
+				normalizedRows.forEach((row, rowIndex) => {
 					const tr = tbody.createEl('tr');
 
 					if (Array.isArray(row)) {
@@ -84,14 +137,6 @@ export default class PTTJSPlugin extends Plugin {
 							// Определяем тип ячейки (th или td)
 							const isHeader = cell.isHeader;
 							const cellEl = tr.createEl(isHeader ? 'th' : 'td', { cls: 'pttjs-cell' });
-
-							// Отображаем индексы ячеек, если включено в настройках
-							if (this.settings.showIndices) {
-								const indexSpan = cellEl.createSpan({ 
-									cls: 'pttjs-cell-index',
-									text: `[${rowIndex}|${cellIndex}]`
-								});
-							}
 
 							// Устанавливаем значение ячейки
 							if (cell.value !== undefined) {
@@ -101,12 +146,13 @@ export default class PTTJSPlugin extends Plugin {
 								});
 							}
 
-							// Устанавливаем атрибуты colspan и rowspan, если они есть
-							if (cell.colspan && cell.colspan > 1) {
-								cellEl.setAttribute('colspan', cell.colspan.toString());
-							}
-							if (cell.rowspan && cell.rowspan > 1) {
-								cellEl.setAttribute('rowspan', cell.rowspan.toString());
+							if (Array.isArray(cell.scale) && cell.scale.length > 1) {
+								if (cell.scale[0] > 1) {
+									cellEl.setAttribute('colspan', cell.scale[0].toString());
+								}
+								if (cell.scale[1] > 1) {
+									cellEl.setAttribute('rowspan', cell.scale[1].toString());
+								}
 							}
 						});
 					}
