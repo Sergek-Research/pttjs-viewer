@@ -178,3 +178,13 @@
 .pttjs-merge-selection {
     background-color: rgba(var(--interactive-accent-rgb), 0.2);
 }
+
+/* Предотвращение скачков при обновлении контента */
+.markdown-source-view.mod-cm6 .cm-content {
+    overflow-anchor: auto;
+}
+
+/* Добавление плавного скролла */
+.pttjs-container {
+    scroll-behavior: smooth;
+}
