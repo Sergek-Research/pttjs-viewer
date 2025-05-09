@@ -4,60 +4,177 @@
     font-size: 14px;
     line-height: 1.5;
 }
-
 .pttjs-page {
     margin-bottom: 2em;
 }
-
 .pttjs-page-title {
     margin-bottom: 0.5em;
     font-weight: bold;
 }
-
 .pttjs-table {
     border-collapse: collapse;
     width: 100%;
     margin-bottom: 1em;
     overflow: auto;
 }
-
 .pttjs-table th,
 .pttjs-table td {
     border: 1px solid var(--background-modifier-border);
     padding: 8px 12px;
     text-align: left;
     vertical-align: top;
+    position: relative; /* Для позиционирования редактора */
+    min-width: 50px; /* Минимальная ширина ячеек */
+    min-height: 30px; /* Минимальная высота ячеек */
 }
-
 .pttjs-table th {
     background-color: var(--background-secondary);
     font-weight: bold;
 }
-
 .pttjs-cell-index {
     color: var(--text-faint);
     font-size: 0.8em;
     display: block;
     margin-bottom: 4px;
 }
-
 .pttjs-cell-value {
     word-break: break-word;
 }
-
 /* Стилизация для темной темы */
 .theme-dark .pttjs-table th {
     background-color: var(--background-secondary-alt);
 }
-
 /* Стилизация для светлой темы */
 .theme-light .pttjs-table th {
     background-color: var(--background-secondary);
 }
-
 /* Анимация при наведении на ячейки */
 .pttjs-table td:hover,
 .pttjs-table th:hover {
-    background-color: var(--background-modifier-hover);
+    background-color: var(--background-modifier-hover) !important;
     transition: background-color 0.2s ease;
+}
+
+/* Обход проблемы с четными столбцами в Obsidian */
+.pttjs-table tr > td:nth-child(even):hover,
+.pttjs-table tr > th:nth-child(even):hover {
+    background-color: var(--background-modifier-hover) !important;
+}
+
+/* Принудительное применение hover-эффекта для всех ячеек */
+.pttjs-cell:hover {
+    background-color: var(--background-modifier-hover) !important;
+}
+
+/* Дополнительные стили для редактирования */
+.pttjs-toolbar {
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.pttjs-btn {
+    background-color: var(--interactive-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-normal);
+    transition: background-color 0.2s ease;
+}
+
+.pttjs-btn:hover {
+    background-color: var(--interactive-hover);
+}
+
+.pttjs-btn:active {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+/* Стили для редактирования ячеек */
+.pttjs-cell-editor {
+    background-color: var(--background-primary);
+    border: none;
+    outline: 2px solid var(--interactive-accent);
+    font-family: inherit;
+    font-size: inherit;
+    padding: 4px;
+    min-height: 60px;
+}
+
+/* Стили для выделенных ячеек */
+.pttjs-cell-selected {
+    background-color: rgba(var(--interactive-accent-rgb), 0.2);
+    outline: 2px solid var(--interactive-accent);
+}
+
+/* Стили для контекстного меню */
+.pttjs-context-menu {
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+.pttjs-menu-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--text-normal);
+    font-size: 14px;
+}
+
+.pttjs-menu-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* Индикаторы добавления строк и столбцов */
+.pttjs-add-row-indicator,
+.pttjs-add-col-indicator {
+    position: absolute;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.pttjs-add-row-indicator {
+    height: 16px;
+    width: 100%;
+    bottom: -8px;
+    left: 0;
+}
+
+.pttjs-add-col-indicator {
+    width: 16px;
+    height: 100%;
+    right: -8px;
+    top: 0;
+}
+
+.pttjs-table tr:hover .pttjs-add-row-indicator,
+.pttjs-table td:hover .pttjs-add-col-indicator,
+.pttjs-table th:hover .pttjs-add-col-indicator {
+    opacity: 1;
+}
+
+/* Стили для режима объединения ячеек */
+.pttjs-merge-mode .pttjs-table td,
+.pttjs-merge-mode .pttjs-table th {
+    cursor: crosshair;
+}
+
+.pttjs-merge-selection-start {
+    background-color: rgba(var(--interactive-accent-rgb), 0.3);
+}
+
+.pttjs-merge-selection {
+    background-color: rgba(var(--interactive-accent-rgb), 0.2);
 }
