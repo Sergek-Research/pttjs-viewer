@@ -7,7 +7,25 @@
 
 A plugin that renders PTTJS (Plain Text Table JavaScript) tables inside [Obsidian](https://obsidian.md).
 
-## Installation
+## Usage
+
+![Demonstration PTTJS](assets/demo.gif)
+
+Create a code block with the language set to `pttjs`, then paste your PTTJS data inside it:
+
+````markdown
+```pttjs
+|PTTJS 1.0|encoding=UTF-8|
+|H>Name|H>Age|H>Profession<|
+|>Ivan|>30|>Programmer<|
+|>Maria|>28|>Designer<|
+|>Alexey|>35|>Manager<|
+```
+````
+
+The plugin will automatically render the table in preview mode.
+
+## Manual Installation
 
 ### From this repository
 
@@ -26,22 +44,6 @@ A plugin that renders PTTJS (Plain Text Table JavaScript) tables inside [O
 
 4. Restart Obsidian.
 5. Enable **Obsidian PTTJS Viewer** in _Settings → Community Plugins_.
-
-## Usage
-
-Create a code block with the language set to `pttjs`, then paste your PTTJS data inside it:
-
-````markdown
-```pttjs
-|PTTJS 1.0|encoding=UTF-8|
-|H>Name|H>Age|H>Profession<|
-|>Ivan|>30|>Programmer<|
-|>Maria|>28|>Designer<|
-|>Alexey|>35|>Manager<|
-```
-````
-
-The plugin will automatically render the table in preview mode.
 
 ## Development
 
