@@ -2,6 +2,7 @@ import { Store, serialize, CellItem } from '@sergek-research/pttjs';
 import { Menu } from 'contextMenu';
 import PTTJSPlugin from 'main';
 import { MarkdownSectionInformation, Notice } from 'obsidian';
+import { t } from "./i18n/i18n";
 
 interface CellItemWithIndex extends CellItem {
   indexString: string;
@@ -21,13 +22,15 @@ export class PTTJSContext {
     private currentPTTJSData: Store, 
     private currentTableContainer: HTMLElement, 
     private filePath: string,
-    private markdownInfo: MarkdownSectionInformation,
+    private markdownInfo: MarkdownSectionInformation | null,
     private plugin: PTTJSPlugin, 
   ) {
     this.renderPTTJSTable(currentPTTJSData, currentTableContainer);
   }
+  private pttjsContainer: HTMLDivElement | null = null;
   private currentCell: HTMLTableCellElement | null = null;
   private currentCellValue: string | null = null;
+  private showIndices = false;
 
   // Получение ячейки из Store по indexString
   getCellByIndexString(indexString: string): { 
@@ -59,6 +62,7 @@ export class PTTJSContext {
   async updateCell(indexString: string, newValue: string) {
     const cellInfo = this.getCellByIndexString(indexString);
     if (!cellInfo || !this.currentPTTJSData) return;
+    if (!this.markdownInfo) return;
 
     const { pageId, rowIndex, cellIndex } = cellInfo;
     
@@ -67,11 +71,11 @@ export class PTTJSContext {
     
     // Сериализуем обновленную Store обратно в текст
     try {
-      const newSource = await serialize(this.currentPTTJSData);
+      const newSource = await serialize(this.currentPTTJSData, this.plugin.settings.showIndices || this.showIndices);
       await this.plugin.replaceBlock({ filePath: this.filePath, section: this.markdownInfo }, newSource);
     } catch (error) {
       console.error('Error serializing PTTJS data:', error);
-      new Notice('Ошибка обновления PTTJS таблицы');
+      new Notice(t('notices.tableUpdateError'));
     }
   }
 
@@ -81,6 +85,8 @@ export class PTTJSContext {
     
     const page = this.currentPTTJSData.data[pageId];
     if (!page.rows) return;
+
+    if (!this.markdownInfo) return;
     
     // Определяем количество ячеек в новой строке
     const cellsCount = page.rows.length > 0 ? page.rows[0].length : 1;
@@ -99,11 +105,11 @@ export class PTTJSContext {
     
     // Сериализуем обновленную Store обратно в текст
     try {
-      const newSource = await serialize(this.currentPTTJSData);
+      const newSource = await serialize(this.currentPTTJSData, this.plugin.settings.showIndices || this.showIndices);
       await this.plugin.replaceBlock({ filePath: this.filePath, section: this.markdownInfo }, newSource);
     } catch (error) {
       console.error('Error serializing PTTJS data:', error);
-      new Notice('Ошибка добавления строки');
+      new Notice(t('notices.rowAddError'));
     }
   }
 
@@ -113,17 +119,19 @@ export class PTTJSContext {
     
     const page = this.currentPTTJSData.data[pageId];
     if (!page.rows) return;
+
+    if (!this.markdownInfo) return;
     
     // Удаляем строку
     page.rows.splice(rowIndex, 1);
     
     // Сериализуем обновленную Store обратно в текст
     try {
-      const newSource = await serialize(this.currentPTTJSData);
+      const newSource = await serialize(this.currentPTTJSData, this.plugin.settings.showIndices || this.showIndices);
       await this.plugin.replaceBlock({ filePath: this.filePath, section: this.markdownInfo }, newSource);
     } catch (error) {
       console.error('Error serializing PTTJS data:', error);
-      new Notice('Ошибка добавления строки');
+      new Notice(t('notices.rowDelError'));
     }
   }
 
@@ -133,6 +141,8 @@ export class PTTJSContext {
     
     const page = this.currentPTTJSData.data[pageId];
     if (!page.rows) return;
+
+    if (!this.markdownInfo) return;
     
     // Добавляем новую ячейку в каждую строку после указанного индекса
     page.rows.forEach((row, rowIndex) => {
@@ -159,11 +169,11 @@ export class PTTJSContext {
     
     // Сериализуем обновленную Store обратно в текст
     try {
-      const newSource = await serialize(this.currentPTTJSData);
+      const newSource = await serialize(this.currentPTTJSData, this.plugin.settings.showIndices || this.showIndices);
       await this.plugin.replaceBlock({ filePath: this.filePath, section: this.markdownInfo }, newSource);
     } catch (error) {
       console.error('Error serializing PTTJS data:', error);
-      new Notice('Ошибка добавления столбца');
+      new Notice(t('notices.cellAddError'));
     }
   }
 
@@ -173,6 +183,8 @@ export class PTTJSContext {
     
     const page = this.currentPTTJSData.data[pageId];
     if (!page.rows) return;
+
+    if (!this.markdownInfo) return;
     
     // Удаляем столбец
     page.rows.forEach((row, rowIndex) => {
@@ -192,11 +204,11 @@ export class PTTJSContext {
     
     // Сериализуем обновленную Store обратно в текст
     try {
-      const newSource = await serialize(this.currentPTTJSData);
+      const newSource = await serialize(this.currentPTTJSData, this.plugin.settings.showIndices || this.showIndices);
       await this.plugin.replaceBlock({ filePath: this.filePath, section: this.markdownInfo }, newSource);
     } catch (error) {
       console.error('Error serializing PTTJS data:', error);
-      new Notice('Ошибка добавления столбца');
+      new Notice(t('notices.cellDelError'));
     }
   }
 
@@ -207,17 +219,19 @@ export class PTTJSContext {
     const page = this.currentPTTJSData.data[pageId];
     if (!page.rows) return;
 
+    if (!this.markdownInfo) return;
+
     const changeCell = page.rows?.[rowIndex]?.[cellIndex];
     if (!changeCell) return;
     changeCell.scale = null;
     
     // Сериализуем обновленную Store обратно в текст
     try {
-      const newSource = await serialize(this.currentPTTJSData);
+      const newSource = await serialize(this.currentPTTJSData, this.plugin.settings.showIndices || this.showIndices);
       await this.plugin.replaceBlock({ filePath: this.filePath, section: this.markdownInfo }, newSource);
     } catch (error) {
       console.error('Error serializing PTTJS data:', error);
-      new Notice('Ошибка добавления столбца');
+      new Notice(t('notices.cellSplitError'));
     }
   }
 
@@ -228,6 +242,8 @@ export class PTTJSContext {
       if (!this.currentPTTJSData) return;
       const page = this.currentPTTJSData.data[pageId];
       if (!page.rows) return;
+
+      if (!this.markdownInfo) return;
 
       const colls = (window as any).selectedCols as Set<Element>;
       let minCell: number | null = null;
@@ -263,14 +279,29 @@ export class PTTJSContext {
 
           // Сериализуем обновленную Store обратно в текст
           try {
-            const newSource = await serialize(this.currentPTTJSData);
+            const newSource = await serialize(this.currentPTTJSData, this.plugin.settings.showIndices || this.showIndices);
             await this.plugin.replaceBlock({ filePath: this.filePath, section: this.markdownInfo }, newSource);
           } catch (error) {
             console.error('Error serializing PTTJS data:', error);
-            new Notice('Ошибка добавления столбца');
+            new Notice(t('notices.cellMergeError'));
           }
         }
       }
+    }
+  }
+
+  // Добавление нового столбца в таблицу
+  async setIndicesVisibility(visibility: boolean) {
+    if (!this.markdownInfo) return;
+
+    this.plugin.settings.showIndices = visibility;
+    await this.plugin.saveSettings();
+    try {
+      const newSource = await serialize(this.currentPTTJSData, visibility);
+      await this.plugin.replaceBlock({ filePath: this.filePath, section: this.markdownInfo }, newSource);
+    } catch (error) {
+      console.error('Error serializing PTTJS data:', error);
+      new Notice(t('notices.cellSplitError'));
     }
   }
 
@@ -278,6 +309,7 @@ export class PTTJSContext {
   renderPTTJSTable(pttjsData: Store, containerEl: HTMLElement) {
     // Создаем контейнер для таблиц PTTJS
     const pttjsContainer = containerEl.createDiv({ cls: 'pttjs-container' });
+    this.pttjsContainer = pttjsContainer;
 
     const pagesCount = Object.keys(pttjsData.data).length;
 
@@ -414,7 +446,7 @@ export class PTTJSContext {
               cellEl.setAttribute('data-index', cell.indexString);
               
               // Если включен показ индексов
-              if (this.plugin.settings.showIndices) {
+              if (this.plugin.settings.showIndices || this.showIndices) {
                 const indexEl = cellEl.createSpan({ 
                   cls: 'pttjs-cell-index',
                   text: cell.indexString
@@ -495,7 +527,7 @@ export class PTTJSContext {
 
                   if (cellEl.classList.contains('selected')) {
                     menu.addItem((item) => 
-                      item.setTitle('Объединить ячейки')
+                      item.setTitle(t('contextMenu.mergeCell'))
                         .onClick(() => this.mergeCells())
                     );
                   }
@@ -503,7 +535,7 @@ export class PTTJSContext {
                   if (cell.scale?.length === 2) {
                     if (cell.scale[0] > 1 || cell.scale[1] > 1) {
                       menu.addItem((item) => 
-                        item.setTitle('Разъединить ячейки')
+                        item.setTitle(t('contextMenu.splitCell'))
                           .onClick(() => this.unmergeCell(pageId, cellIndex, rowIndex))
                       );
                     }
@@ -511,39 +543,52 @@ export class PTTJSContext {
 
                   // Добавляем кнопку добавления строки после этой строки
                   menu.addItem((item) => 
-                    item.setTitle('Добавить строку после')
+                    item.setTitle(t('contextMenu.addRowAfter'))
                       .onClick(() => this.addRow(pageId, rowIndex))
                   );
                   
                   if (rowIndex > 0) {
                     menu.addItem((item) => 
-                      item.setTitle('Добавить строку до')
+                      item.setTitle(t('contextMenu.addRowBefore'))
                         .onClick(() => this.addRow(pageId, rowIndex - 1))
                     );
                   }
                   
                   // Опция добавления столбца
                   menu.addItem((item) => 
-                    item.setTitle('Добавить столбец после')
+                    item.setTitle(t('contextMenu.addCellAfter'))
                       .onClick(() => this.addColumn(pageId, cellIndex))
                   );
                   
                   if (cellIndex > 0) {
                     menu.addItem((item) => 
-                      item.setTitle('Добавить столбец до')
+                      item.setTitle(t('contextMenu.addCellBefore'))
                         .onClick(() => this.addColumn(pageId, cellIndex - 1))
                     );
                   }
 
                   menu.addItem((item) => 
-                    item.setTitle('Удалить строку')
+                    item.setTitle(t('contextMenu.removeRow'))
                       .onClick(() => this.removeRow(pageId, rowIndex))
                   );
                   
                   menu.addItem((item) => 
-                    item.setTitle('Удалить столбец')
+                    item.setTitle(t('contextMenu.removeCell'))
                       .onClick(() => this.removeColumn(pageId, cellIndex))
                   );
+
+                  if (this.plugin.settings.showIndices || this.showIndices) {
+                    menu.addItem((item) => 
+                      item.setTitle(t('contextMenu.hideIndices'))
+                        .onClick(() => this.setIndicesVisibility(false))
+                    );
+                  } else {
+                    menu.addItem((item) => 
+                      item.setTitle(t('contextMenu.showIndices'))
+                        .onClick(() => this.setIndicesVisibility(true))
+                    );
+                  }
+                  
                   
                   menu.showAtPosition({ x: e.pageX, y: e.pageY });
                 });

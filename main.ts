@@ -1,6 +1,7 @@
 import { Plugin, MarkdownView, Notice, PluginSettingTab, App, Setting, Editor, MarkdownSectionInformation, TAbstractFile } from 'obsidian';
-import { parse } from '@sergek-research/pttjs';
+import { parse, parseSync } from '@sergek-research/pttjs';
 import { PTTJSContext } from './pttjsContext';
+import { t } from "./i18n/i18n";
 
 interface BlockRef {
   filePath: string;
@@ -31,12 +32,9 @@ export default class PTTJSPlugin extends Plugin {
     // Регистрация постпроцессора для обработки блоков кода с языком pttjs
     this.registerMarkdownCodeBlockProcessor('pttjs', async (source, el, ctx) => {
       try {
+        const pttjsData = await parse(source);
         const info = ctx.getSectionInfo(el);
-
-        if (info) {
-          const pttjsData = await parse(source);
-          this.blockIndex.set(el, new PTTJSContext(pttjsData, el, ctx.sourcePath, info, this));
-        }
+        this.blockIndex.set(el, new PTTJSContext(pttjsData, el, ctx.sourcePath, info, this));
       } catch (error) {
         console.error('PTTJS parse error:', error);
         el.createEl('p', { text: 'Error parsing PTTJS: ' + error.message });
@@ -91,7 +89,7 @@ export default class PTTJSPlugin extends Plugin {
 
       requestAnimationFrame(() => editor.scrollTo(left, top));
 
-      new Notice('PTTJS table updated');
+      new Notice(t('notices.tableUpdated'));
     }
   }
 }
@@ -110,11 +108,11 @@ class PTTJSSettingTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'PTTJS Tables Settings' });
+    containerEl.createEl('h2', { text: t('settings.title') });
 
     new Setting(containerEl)
-      .setName('Show Headers')
-      .setDesc('Show page titles in PTTJS tables')
+      .setName(t('settings.showHeaders.name'))
+      .setDesc(t('settings.showHeaders.desc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.showHeaders)
         .onChange(async (value) => {
@@ -123,8 +121,8 @@ class PTTJSSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Show Cell Indices')
-      .setDesc('Show row and column indices in each cell')
+      .setName(t('settings.showIndices.name'))
+      .setDesc(t('settings.showIndices.desc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.showIndices)
         .onChange(async (value) => {
@@ -133,8 +131,8 @@ class PTTJSSettingTab extends PluginSettingTab {
         }));
         
     new Setting(containerEl)
-      .setName('Enable Editing')
-      .setDesc('Enable interactive editing of PTTJS tables')
+      .setName(t('settings.enableEditing.name'))
+      .setDesc(t('settings.enableEditing.desc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.enableEditing)
         .onChange(async (value) => {

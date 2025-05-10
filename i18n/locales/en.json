@@ -1,0 +1,39 @@
+{
+  "settings": {
+    "title": "PTTJS Table Settings",
+    "showHeaders": {
+      "name": "Show headers (when single page)",
+      "desc": "Displays page headers for PTTJS tables"
+    },
+    "showIndices": {
+      "name": "Enable indexes",
+      "desc": "Displays indexes in the table and keeps them on export"
+    },
+    "enableEditing": {
+      "name": "Allow editing",
+      "desc": "Allows table editing"
+    }
+  },
+  "notices": {
+    "tableUpdated": "PTTJS table updated",
+    "tableUpdateError": "PTTJS table update error",
+    "rowAddError": "Row addition error",
+    "rowDelError": "Row deletion error",
+    "cellAddError": "Column addition error",
+    "cellDelError": "Column deletion error",
+    "cellSplitError": "Cell split error",
+    "cellMergeError": "Cell merge error"
+  },
+  "contextMenu": {
+    "mergeCell": "Merge cells",
+    "splitCell": "Split cells",
+    "addRowAfter": "Add row after",
+    "addRowBefore": "Add row before",
+    "addCellAfter": "Add column after",
+    "addCellBefore": "Add column before",
+    "removeRow": "Delete row",
+    "removeCell": "Delete column",
+    "hideIndices": "Hide indices",
+    "showIndices": "Show indices"
+  }
+}
