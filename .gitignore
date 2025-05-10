@@ -32,7 +32,6 @@ yarn-error.log*
 
 # Yarn
 .yarn-integrity
-yarn.lock
 
 # Optional npm cache directory
 .npm
