@@ -38,6 +38,8 @@ export default class PTTJSPlugin extends Plugin {
   currentTableContainer: HTMLElement | null = null;
   // Флаг для предотвращения множественных обновлений
   isUpdating: boolean = false;
+  currentCell: HTMLTableCellElement | null = null;
+  currentCellValue: string | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -112,11 +114,12 @@ export default class PTTJSPlugin extends Plugin {
       
       try {
         // Сохраняем текущую позицию прокрутки
+        const scrollElement = document.querySelector('.view-content > .markdown-source-view.mod-cm6 > .cm-editor > .cm-scroller');
         const scrollInfo = {
-          top: document.documentElement.scrollTop || 0,
-          left: document.documentElement.scrollLeft || 0
+          top: scrollElement?.scrollTop || 0,
+          left: scrollElement?.scrollLeft || 0
         };
-        
+
         const { start, end } = this.currentSourcePosition;
         const currentText = this.currentEditor.getValue();
         const newText = currentText.substring(0, start) 
@@ -134,7 +137,7 @@ export default class PTTJSPlugin extends Plugin {
         
         // Восстанавливаем позицию прокрутки с задержкой
         setTimeout(() => {
-          window.scrollTo({
+          scrollElement?.scrollTo({
             top: scrollInfo.top,
             left: scrollInfo.left,
             behavior: 'auto' // Используем 'auto' вместо 'smooth'
@@ -145,7 +148,7 @@ export default class PTTJSPlugin extends Plugin {
           
           // Снимаем флаг обновления
           this.isUpdating = false;
-        }, 50);
+        }, 10);
       } catch (error) {
         console.error('Error updating PTTJS text:', error);
         this.isUpdating = false;
@@ -169,7 +172,7 @@ export default class PTTJSPlugin extends Plugin {
       if (page.rows && page.rows[rowIndex] && page.rows[rowIndex][cellIndex]) {
         return {
           pageId,
-          cell: page.rows[rowIndex][cellIndex],
+          cell: page.rows[rowIndex][cellIndex] as CellItem,
           rowIndex,
           cellIndex
         };
@@ -211,15 +214,35 @@ export default class PTTJSPlugin extends Plugin {
     
     // Создаем новую строку с пустыми ячейками
     const newRow: CellItem[] = Array(cellsCount).fill(null).map((_, i) => ({
-      id: `cell_${Date.now()}_${i}`,
+      id: null,
       value: '',
-      scale: [1, 1],
+      scale: null,
       index: i,
-      isHeader: false
-    }));
+      isHeader: null
+    } as unknown as CellItem));
     
     // Вставляем новую строку после указанной
     page.rows.splice(afterRowIndex + 1, 0, newRow);
+    
+    // Сериализуем обновленную Store обратно в текст
+    try {
+      const newSource = await serialize(this.currentPTTJSData);
+      await this.updateSourceText(newSource);
+    } catch (error) {
+      console.error('Error serializing PTTJS data:', error);
+      new Notice('Ошибка добавления строки');
+    }
+  }
+
+  // Удаление строки таблицы
+  async removeRow(pageId: string, rowIndex: number) {
+    if (!this.currentPTTJSData) return;
+    
+    const page = this.currentPTTJSData.data[pageId];
+    if (!page.rows) return;
+    
+    // Удаляем строку
+    page.rows.splice(rowIndex, 1);
     
     // Сериализуем обновленную Store обратно в текст
     try {
@@ -241,13 +264,23 @@ export default class PTTJSPlugin extends Plugin {
     // Добавляем новую ячейку в каждую строку после указанного индекса
     page.rows.forEach((row, rowIndex) => {
       const newCell: CellItem = {
-        id: `cell_${Date.now()}_${rowIndex}`,
+        id: null,
         value: '',
-        scale: [1, 1],
+        scale: null,
         index: afterColumnIndex + 1,
-        isHeader: rowIndex === 0 && row[0]?.isHeader // Наследуем свойство заголовка из первой ячейки строки
-      };
-      
+        isHeader: row[0]?.isHeader
+      } as unknown as CellItem;
+      if (row.length < afterColumnIndex + 1) {
+        for (let newIndex = row.length; newIndex < afterColumnIndex + 1; newIndex++) { 
+          row.push({
+            id: null,
+            value: '',
+            scale: null,
+            index: newIndex,
+            isHeader: row[0]?.isHeader
+          } as unknown as CellItem);
+        }
+      }
       row.splice(afterColumnIndex + 1, 0, newCell);
     });
     
@@ -261,40 +294,28 @@ export default class PTTJSPlugin extends Plugin {
     }
   }
 
-  // Объединение ячеек
-  async mergeCells(startIndexString: string, endIndexString: string) {
+  // Удаление строки таблицы
+  async removeColumn(pageId: string, cellIndex: number) {
     if (!this.currentPTTJSData) return;
     
-    const startCell = this.getCellByIndexString(startIndexString);
-    const endCell = this.getCellByIndexString(endIndexString);
+    const page = this.currentPTTJSData.data[pageId];
+    if (!page.rows) return;
     
-    if (!startCell || !endCell || startCell.pageId !== endCell.pageId) return;
-    
-    const { pageId } = startCell;
-    const startRow = Math.min(startCell.rowIndex, endCell.rowIndex);
-    const endRow = Math.max(startCell.rowIndex, endCell.rowIndex);
-    const startCol = Math.min(startCell.cellIndex, endCell.cellIndex);
-    const endCol = Math.max(startCell.cellIndex, endCell.cellIndex);
-    
-    // Количество объединяемых строк и столбцов
-    const rowSpan = endRow - startRow + 1;
-    const colSpan = endCol - startCol + 1;
-    
-    // Обновляем масштаб начальной ячейки
-    const cell = this.currentPTTJSData.data[pageId].rows[startRow][startCol];
-    cell.scale = [colSpan, rowSpan];
-    
-    // Помечаем остальные ячейки в области объединения как пустые
-    for (let r = startRow; r <= endRow; r++) {
-      for (let c = startCol; c <= endCol; c++) {
-        if (r === startRow && c === startCol) continue; // Пропускаем начальную ячейку
-        
-        // Удаляем содержимое ячейки, но сохраняем её в структуре
-        const emptyCell = this.currentPTTJSData.data[pageId].rows[r][c];
-        emptyCell.value = '';
-        emptyCell.scale = [0, 0]; // Маркируем как часть объединенной ячейки
+    // Удаляем столбец
+    page.rows.forEach((row, rowIndex) => {
+      if (row.length < cellIndex + 1) {
+        for (let newIndex = row.length; newIndex < cellIndex + 1; newIndex++) { 
+          row.push({
+            id: null,
+            value: '',
+            scale: null,
+            index: newIndex,
+            isHeader: row[0]?.isHeader
+          } as unknown as CellItem);
+        }
       }
-    }
+      row.splice(cellIndex, 1);
+    });
     
     // Сериализуем обновленную Store обратно в текст
     try {
@@ -302,40 +323,20 @@ export default class PTTJSPlugin extends Plugin {
       await this.updateSourceText(newSource);
     } catch (error) {
       console.error('Error serializing PTTJS data:', error);
-      new Notice('Ошибка объединения ячеек');
+      new Notice('Ошибка добавления столбца');
     }
   }
 
-  // Разделение объединенной ячейки
-  async splitCell(indexString: string) {
-    const cellInfo = this.getCellByIndexString(indexString);
-    if (!cellInfo || !this.currentPTTJSData) return;
+  // Добавление нового столбца в таблицу
+  async unmergeCell(pageId: string, cellIndex: number, rowIndex: number) {
+    if (!this.currentPTTJSData) return;
     
-    const { pageId, cell, rowIndex, cellIndex } = cellInfo;
-    
-    if (!Array.isArray(cell.scale) || cell.scale.length < 2 || (cell.scale[0] <= 1 && cell.scale[1] <= 1)) {
-      // Ячейка не объединена
-      return;
-    }
-    
-    const [colSpan, rowSpan] = cell.scale;
-    
-    // Сбрасываем масштаб этой ячейки
-    cell.scale = [1, 1];
-    
-    // Восстанавливаем ячейки, которые были частью объединения
-    for (let r = rowIndex; r < rowIndex + rowSpan; r++) {
-      for (let c = cellIndex; c < cellIndex + colSpan; c++) {
-        if (r === rowIndex && c === cellIndex) continue; // Пропускаем исходную ячейку
-        
-        // Восстанавливаем ячейку
-        if (this.currentPTTJSData.data[pageId].rows[r] && this.currentPTTJSData.data[pageId].rows[r][c]) {
-          const restoredCell = this.currentPTTJSData.data[pageId].rows[r][c];
-          restoredCell.scale = [1, 1];
-          restoredCell.value = ''; // Пустое значение для восстановленных ячеек
-        }
-      }
-    }
+    const page = this.currentPTTJSData.data[pageId];
+    if (!page.rows) return;
+
+    const changeCell = page.rows?.[rowIndex]?.[cellIndex];
+    if (!changeCell) return;
+    changeCell.scale = null;
     
     // Сериализуем обновленную Store обратно в текст
     try {
@@ -343,7 +344,60 @@ export default class PTTJSPlugin extends Plugin {
       await this.updateSourceText(newSource);
     } catch (error) {
       console.error('Error serializing PTTJS data:', error);
-      new Notice('Ошибка разделения ячеек');
+      new Notice('Ошибка добавления столбца');
+    }
+  }
+
+  // Объединение ячеек
+  async mergeCells() {
+    if (((window as any).selectedCols as Set<Element>)?.size && ((window as any).selectedCols as Set<Element>).size > 1) {
+      const pageId = (window as any).selectedPage || '';
+      if (!this.currentPTTJSData) return;
+      const page = this.currentPTTJSData.data[pageId];
+      if (!page.rows) return;
+
+      const colls = (window as any).selectedCols as Set<Element>;
+      let minCell: number | null = null;
+      let minRow: number | null = null;
+      let maxCell: number | null = null;
+      let maxRow: number | null = null;
+      colls.forEach((el) => {
+        if (el.hasAttribute('data-index')) {
+          const indexString = el.getAttribute('data-index');
+          if (!indexString) return;
+          const cellInfo = this.getCellByIndexString(indexString);
+          if (!cellInfo || !this.currentPTTJSData) return;
+          if (minCell === null || minCell > cellInfo.cellIndex) {
+            minCell = cellInfo.cellIndex;
+          } 
+          if (minRow === null || minRow > cellInfo.rowIndex) {
+            minRow = cellInfo.rowIndex;
+          }
+          if (maxCell === null || maxCell < cellInfo.cellIndex) {
+            maxCell = cellInfo.cellIndex;
+          } 
+          if (maxRow === null || maxRow < cellInfo.rowIndex) {
+            maxRow = cellInfo.rowIndex;
+          } 
+        }
+      })
+      if (typeof minCell === 'number' && typeof minRow === 'number' && typeof maxCell === 'number' && typeof maxRow === 'number') {
+        let scaleX = maxCell - minCell + 1;
+        let scaleY = maxRow - minRow + 1;
+        const changeCell = page.rows?.[minRow]?.[minCell];
+        if (changeCell) {
+          changeCell.scale = [scaleX, scaleY];
+
+          // Сериализуем обновленную Store обратно в текст
+          try {
+            const newSource = await serialize(this.currentPTTJSData);
+            await this.updateSourceText(newSource);
+          } catch (error) {
+            console.error('Error serializing PTTJS data:', error);
+            new Notice('Ошибка добавления столбца');
+          }
+        }
+      }
     }
   }
 
@@ -351,18 +405,6 @@ export default class PTTJSPlugin extends Plugin {
   renderPTTJSTable(pttjsData: Store, containerEl: HTMLElement, sourceText: string) {
     // Создаем контейнер для таблиц PTTJS
     const pttjsContainer = containerEl.createDiv({ cls: 'pttjs-container' });
-
-    // Сохраняем ссылку на текущий элемент контейнера для последующего восстановления фокуса
-    const currentActiveElement = document.activeElement;
-    let focusedCellIndex: string | null = null;
-    
-    // Если активный элемент находится внутри ячейки таблицы, сохраним его индекс
-    if (currentActiveElement instanceof HTMLElement) {
-      const closestCell = currentActiveElement.closest('.pttjs-cell');
-      if (closestCell instanceof HTMLElement) {
-        focusedCellIndex = closestCell.getAttribute('data-index');
-      }
-    }
 
     const pagesCount = Object.keys(pttjsData.data).length;
 
@@ -383,45 +425,79 @@ export default class PTTJSPlugin extends Plugin {
         });
       }
 
-      // Создаем панель инструментов для редактирования таблицы
-      if (this.settings.enableEditing) {
-        const toolbarEl = pageContainer.createDiv({ cls: 'pttjs-toolbar' });
-        
-        // Кнопка добавления строки
-        const addRowBtn = toolbarEl.createEl('button', { 
-          text: 'Добавить строку',
-          cls: 'pttjs-btn pttjs-add-row'
-        });
-        addRowBtn.addEventListener('click', () => {
-          // Добавляем строку в конец таблицы
-          const lastRowIndex = page.rows ? page.rows.length - 1 : -1;
-          this.addRow(pageId, lastRowIndex);
-        });
-        
-        // Кнопка добавления столбца
-        const addColBtn = toolbarEl.createEl('button', { 
-          text: 'Добавить столбец',
-          cls: 'pttjs-btn pttjs-add-col'
-        });
-        addColBtn.addEventListener('click', () => {
-          // Добавляем столбец в конец таблицы
-          const lastColIndex = page.rows && page.rows.length > 0 ? page.rows[0].length - 1 : -1;
-          this.addColumn(pageId, lastColIndex);
-        });
-      }
-
       // Создаем таблицу
-      const table = pageContainer.createEl('table', { cls: 'pttjs-table' });
+      const table = pageContainer.createEl('table', { cls: ['pttjs-table',pageId] });
       const tbody = table.createEl('tbody');
+
+      table.addEventListener("mousedown", (e: MouseEvent) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+
+        const cell = (e.target as HTMLElement)?.closest("td, th");
+        if (!cell) return;
+
+        const currentTable = (e.target as HTMLElement)?.closest("table");
+        let currentPageId = '';
+        if (currentTable?.classList.contains('pttjs-table')) {
+          currentTable?.classList.forEach((el) => {
+            if (el.startsWith('@')) {
+              currentPageId = el;
+            }
+          });
+        }
+        if (currentPageId) {
+          if ((window as any).selectedCols) {
+            ((window as any).selectedCols as Set<Element>).forEach((element) => {
+              if (element.classList.contains('selected')) {
+                element.classList.remove('selected');
+              }
+            });
+            (window as any).selectedCols = null;
+            (window as any).selectedPage = null;
+          }
+          (window as any).isSelecting = true;
+          (window as any).selectedPage = currentPageId;
+          (window as any).selectedCols = new Set();
+          ((window as any).selectedCols as Set<Element>).add(cell);
+        }
+      });
+
+      table.addEventListener("mousemove", (e: MouseEvent) => {
+        if (!(window as any).isSelecting) return;
+
+        const cell = (e.target as HTMLElement)?.closest("td, th");
+        if (!cell) return;
+
+        ((window as any).selectedCols as Set<Element>).add(cell);
+        if (((window as any).selectedCols as Set<Element>).size > 1) {
+          ((window as any).selectedCols as Set<Element>).forEach((element) => {
+            if (!element.classList.contains('selected')) {
+              element.classList.add('selected');
+            }
+          });
+        }
+      });
+
+      document.addEventListener("mouseup", () => {
+        (window as any).isSelecting = false;
+        if (!((window as any).selectedCols as Set<Element>)?.size || ((window as any).selectedCols as Set<Element>).size < 2) {
+          (window as any).selectedPage = null;
+          (window as any).selectedCols = null;
+        }
+      });
 
       // Создаем строки и ячейки
       if (rows && Array.isArray(rows)) {
         // Предварительная обработка ячеек, для colspan и rowspan
         const ignoreRowCell: IgnoreRowCell = {};
+        let maxCellIndex = 0;
         rows.forEach((oldRow, oldRowIndex) => {
           if (Array.isArray(oldRow)) {
             const newRow: CellItemWithIndex[] = [];
             oldRow.forEach((oldCell, oldCellIndex) => {
+              if (oldCellIndex > maxCellIndex) {
+                maxCellIndex = oldCellIndex;
+              }
               if (!ignoreRowCell[`r${oldRowIndex}`]?.includes(oldCellIndex)) {
                 const newCell: CellItemWithIndex = {
                   id: oldCell.id,
@@ -430,7 +506,7 @@ export default class PTTJSPlugin extends Plugin {
                   index: oldCell.index,
                   isHeader: oldCell.isHeader,
                   indexString: `${oldCellIndex};${oldRowIndex}`
-                }
+                } as unknown as CellItemWithIndex;
                 newRow.push(newCell);
                 if (Array.isArray(oldCell.scale) && oldCell.scale.length > 1) {
                   if (oldCell.scale[0] > 1) {
@@ -455,28 +531,6 @@ export default class PTTJSPlugin extends Plugin {
         normalizedRows.forEach((row, rowIndex) => {
           const tr = tbody.createEl('tr');
           
-          // Добавляем кнопку добавления строки после этой строки
-          if (this.settings.enableEditing) {
-            tr.oncontextmenu = (e) => {
-              e.preventDefault();
-              const menu = new Menu();
-              
-              menu.addItem((item) => 
-                item.setTitle('Добавить строку после')
-                  .onClick(() => this.addRow(pageId, rowIndex))
-              );
-              
-              if (rowIndex > 0) {
-                menu.addItem((item) => 
-                  item.setTitle('Добавить строку до')
-                    .onClick(() => this.addRow(pageId, rowIndex - 1))
-                );
-              }
-              
-              menu.showAtPosition({ x: e.pageX, y: e.pageY });
-            };
-          }
-
           if (Array.isArray(row)) {
             row.forEach((cell, cellIndex) => {
               // Определяем тип ячейки (th или td)
@@ -517,6 +571,8 @@ export default class PTTJSPlugin extends Plugin {
                 // Двойной клик для редактирования ячейки
                 cellEl.addEventListener('dblclick', () => {
                   if (this.isUpdating) return; // Предотвращаем редактирование во время обновления
+                  this.currentCell = cellEl;
+                  this.currentCellValue = cellEl.innerHTML;
                   
                   const textarea = document.createElement('textarea');
                   textarea.value = cell.value || '';
@@ -533,26 +589,29 @@ export default class PTTJSPlugin extends Plugin {
                   // Фокус на textarea
                   textarea.focus();
                   
-                  // Сохранение при потере фокуса
-                  textarea.addEventListener('blur', () => {
-                    if (textarea.value !== cell.value) {
-                      this.updateCell(cell.indexString, textarea.value);
-                    } else {
-                      // Если значение не изменилось, просто восстанавливаем ячейку без обновления
-                      this.renderPTTJSTable(this.currentPTTJSData!, this.currentTableContainer!, sourceText);
-                    }
-                  });
-                  
                   // Сохранение при нажатии Enter
                   textarea.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       if (textarea.value !== cell.value) {
+                        this.currentCell = null;
+                        this.currentCellValue = null;
                         this.updateCell(cell.indexString, textarea.value);
                       } else {
-                        // Если значение не изменилось, просто восстанавливаем ячейку без обновления
-                        this.renderPTTJSTable(this.currentPTTJSData!, this.currentTableContainer!, sourceText);
+                        if (this.currentCell) {
+                          this.currentCell.innerHTML = this.currentCellValue || '';
+                          this.currentCell = null;
+                          this.currentCellValue = null;
+                        }
                       }
+                    }
+                    if (e.key === 'Escape' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (this.currentCell) {
+                          this.currentCell.innerHTML = this.currentCellValue || '';
+                          this.currentCell = null;
+                          this.currentCellValue = null;
+                        }
                     }
                   });
                 });
@@ -561,6 +620,35 @@ export default class PTTJSPlugin extends Plugin {
                 cellEl.oncontextmenu = (e) => {
                   e.preventDefault();
                   const menu = new Menu();
+
+                  if (cellEl.classList.contains('selected')) {
+                    menu.addItem((item) => 
+                      item.setTitle('Объединить ячейки')
+                        .onClick(() => this.mergeCells())
+                    );
+                  }
+
+                  if (cell.scale?.length === 2) {
+                    if (cell.scale[0] > 1 || cell.scale[1] > 1) {
+                      menu.addItem((item) => 
+                        item.setTitle('Разъединить ячейки')
+                          .onClick(() => this.unmergeCell(pageId, cellIndex, rowIndex))
+                      );
+                    }
+                  }
+
+                  // Добавляем кнопку добавления строки после этой строки
+                  menu.addItem((item) => 
+                    item.setTitle('Добавить строку после')
+                      .onClick(() => this.addRow(pageId, rowIndex))
+                  );
+                  
+                  if (rowIndex > 0) {
+                    menu.addItem((item) => 
+                      item.setTitle('Добавить строку до')
+                        .onClick(() => this.addRow(pageId, rowIndex - 1))
+                    );
+                  }
                   
                   // Опция добавления столбца
                   menu.addItem((item) => 
@@ -574,28 +662,16 @@ export default class PTTJSPlugin extends Plugin {
                         .onClick(() => this.addColumn(pageId, cellIndex - 1))
                     );
                   }
+
+                  menu.addItem((item) => 
+                    item.setTitle('Удалить строку')
+                      .onClick(() => this.removeRow(pageId, rowIndex))
+                  );
                   
-                  // Проверяем, объединена ли ячейка
-                  const isMerged = Array.isArray(cell.scale) && (cell.scale[0] > 1 || cell.scale[1] > 1);
-                  
-                  if (isMerged) {
-                    menu.addItem((item) => 
-                      item.setTitle('Разъединить ячейки')
-                        .onClick(() => this.splitCell(cell.indexString))
-                    );
-                  } else {
-                    menu.addItem((item) => 
-                      item.setTitle('Объединить с соседней ячейкой...')
-                        .onClick(() => {
-                          // Здесь можно добавить интерфейс выбора второй ячейки
-                          // Но для простоты можно объединять с ячейкой справа по умолчанию
-                          if (cellIndex < row.length - 1) {
-                            const nextCell = row[cellIndex + 1];
-                            this.mergeCells(cell.indexString, nextCell.indexString);
-                          }
-                        })
-                    );
-                  }
+                  menu.addItem((item) => 
+                    item.setTitle('Удалить столбец')
+                      .onClick(() => this.removeColumn(pageId, cellIndex))
+                  );
                   
                   menu.showAtPosition({ x: e.pageX, y: e.pageY });
                 };
@@ -672,9 +748,12 @@ class Menu {
     this.element.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
     this.element.style.zIndex = '1000';
     document.body.appendChild(this.element);
-    
-    // Закрыть меню при клике вне его
-    document.addEventListener('click', () => this.close(), { once: true });
+
+    const events = ['click', 'dblclick'];
+
+    events.forEach(event => {
+        document.addEventListener(event, () => this.close(), { once: true });
+    });
   }
   
   addItem(callback: (item: MenuItem) => void): Menu {

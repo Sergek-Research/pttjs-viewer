@@ -31,6 +31,9 @@
   background-color: var(--background-secondary);
   font-weight: bold;
 }
+.pttjs-cell.selected {
+  outline: 2px solid var(--interactive-accent);
+}
 .pttjs-cell-index {
   color: var(--text-faint);
   font-size: 0.8em;
