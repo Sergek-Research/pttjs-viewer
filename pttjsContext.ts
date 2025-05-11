@@ -1,7 +1,6 @@
 import { Store, serialize, CellItem } from '@sergek-research/pttjs';
-import { Menu } from 'contextMenu';
 import PTTJSPlugin from 'main';
-import { MarkdownSectionInformation, Notice } from 'obsidian';
+import { MarkdownSectionInformation, Notice, Menu } from 'obsidian';
 import { t } from "./i18n/i18n";
 
 interface CellItemWithIndex extends CellItem {
@@ -29,7 +28,7 @@ export class PTTJSContext {
   }
   private pttjsContainer: HTMLDivElement | null = null;
   private currentCell: HTMLTableCellElement | null = null;
-  private currentCellValue: string | null = null;
+  private currentCellValue: Node[] | null = null;
   private showIndices = false;
 
   // Получение ячейки из Store по indexString
@@ -476,20 +475,13 @@ export class PTTJSContext {
                 // Двойной клик для редактирования ячейки
                 this.plugin.registerDomEvent(cellEl, 'dblclick', () => {
                   this.currentCell = cellEl;
-                  this.currentCellValue = cellEl.innerHTML;
-                  
-                  const textarea = document.createElement('textarea');
-                  textarea.value = cell.value || '';
-                  textarea.className = 'pttjs-cell-editor';
-                  textarea.style.width = '100%';
-                  textarea.style.height = '100%';
-                  textarea.style.boxSizing = 'border-box';
-                  textarea.style.resize = 'none';
-                  
-                  // Очищаем содержимое ячейки и добавляем textarea
-                  cellEl.innerHTML = '';
-                  cellEl.appendChild(textarea);
-                  
+                  this.currentCellValue = Array.from(cellEl.childNodes);
+                  const originalText  = cellEl.textContent ?? '';
+                  const textarea = cellEl.createEl("textarea", {
+                    cls: 'pttjs-cell-editor',
+                  });
+                  textarea.value = originalText;
+                  cellEl.replaceChildren(textarea);
                   // Фокус на textarea
                   textarea.focus();
                   
@@ -502,8 +494,8 @@ export class PTTJSContext {
                         this.currentCellValue = null;
                         this.updateCell(cell.indexString, textarea.value);
                       } else {
-                        if (this.currentCell) {
-                          this.currentCell.innerHTML = this.currentCellValue || '';
+                        if (this.currentCell && this.currentCellValue) {
+                          cellEl.replaceChildren(...this.currentCellValue);
                           this.currentCell = null;
                           this.currentCellValue = null;
                         }
@@ -511,8 +503,8 @@ export class PTTJSContext {
                     }
                     if (e.key === 'Escape' && !e.shiftKey) {
                       e.preventDefault();
-                      if (this.currentCell) {
-                          this.currentCell.innerHTML = this.currentCellValue || '';
+                      if (this.currentCell && this.currentCellValue) {
+                          cellEl.replaceChildren(...this.currentCellValue);
                           this.currentCell = null;
                           this.currentCellValue = null;
                         }

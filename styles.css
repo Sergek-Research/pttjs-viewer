@@ -1,4 +1,3 @@
-/* styles.css */
 .pttjs-container {
   margin: 1em 0;
   font-size: 14px;
@@ -108,32 +107,13 @@
   box-sizing: border-box;
   width: 100%;
   height: 100%;
+  resize: none;
 }
 
 /* Стили для выделенных ячеек */
 .pttjs-cell-selected {
   background-color: rgba(var(--interactive-accent-rgb), 0.2);
   outline: 2px solid var(--interactive-accent);
-}
-
-/* Стили для контекстного меню */
-.pttjs-context-menu {
-  background-color: var(--background-primary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-}
-
-.pttjs-menu-item {
-  padding: 6px 12px;
-  cursor: pointer;
-  color: var(--text-normal);
-  font-size: 14px;
-}
-
-.pttjs-menu-item:hover {
-  background-color: var(--background-modifier-hover);
 }
 
 /* Индикаторы добавления строк и столбцов */

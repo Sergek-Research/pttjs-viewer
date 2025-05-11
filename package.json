@@ -1,6 +1,6 @@
 {
   "name": "pttjs-viewer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Visualize PTTJS (Plain Text Table JavaScript) data in Obsidian",
   "main": "main.js",
   "scripts": {
