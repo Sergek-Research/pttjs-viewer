@@ -49,14 +49,14 @@ export default class PTTJSPlugin extends Plugin {
   }
 
   onunload() {
-    if ((window as any).selectedCols) {
-      delete (window as any).selectedCols;
+    if (window.selectedCols) {
+      delete window.selectedCols;
     }
-    if ((window as any).isSelecting) {
-      delete (window as any).isSelecting;
+    if (window.isSelecting) {
+      delete window.isSelecting;
     }
-    if ((window as any).selectedPage) {
-      delete (window as any).selectedPage;
+    if (window.selectedPage) {
+      delete window.selectedPage;
     }
     console.log('PTTJS plugin unloaded');
   }

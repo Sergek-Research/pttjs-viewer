@@ -85,3 +85,9 @@ declare module '@sergek-research/pttjs' {
      */
     export function unescapeValue(value: string): string;
 }
+
+interface Window {
+    selectedCols?: Set<Element> | null;
+    isSelecting?: boolean | null;
+    selectedPage?: string | null;
+}

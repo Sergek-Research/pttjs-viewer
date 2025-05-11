@@ -236,15 +236,15 @@ export class PTTJSContext {
 
   // Объединение ячеек
   async mergeCells() {
-    if (((window as any).selectedCols as Set<Element>)?.size && ((window as any).selectedCols as Set<Element>).size > 1) {
-      const pageId = (window as any).selectedPage || '';
+    if (window.selectedCols?.size && window.selectedCols.size > 1) {
+      const pageId = window.selectedPage || '';
       if (!this.currentPTTJSData) return;
       const page = this.currentPTTJSData.data[pageId];
       if (!page.rows) return;
 
       if (!this.markdownInfo) return;
 
-      const colls = (window as any).selectedCols as Set<Element>;
+      const colls = window.selectedCols;
       let minCell: number | null = null;
       let minRow: number | null = null;
       let maxCell: number | null = null;
@@ -350,31 +350,32 @@ export class PTTJSContext {
           });
         }
         if (currentPageId) {
-          if ((window as any).selectedCols) {
-            ((window as any).selectedCols as Set<Element>).forEach((element) => {
+          if (window.selectedCols) {
+            window.selectedCols.forEach((element) => {
               if (element.classList.contains('selected')) {
                 element.classList.remove('selected');
               }
             });
-            (window as any).selectedCols = null;
-            (window as any).selectedPage = null;
+            window.selectedCols = null;
+            window.selectedPage = null;
           }
-          (window as any).isSelecting = true;
-          (window as any).selectedPage = currentPageId;
-          (window as any).selectedCols = new Set();
-          ((window as any).selectedCols as Set<Element>).add(cell);
+          window.isSelecting = true;
+          window.selectedPage = currentPageId;
+          window.selectedCols = new Set();
+          window.selectedCols.add(cell);
         }
       });
 
       this.plugin.registerDomEvent(table, 'mousemove', (e: MouseEvent) => {
-        if (!(window as any).isSelecting) return;
+        if (!window.isSelecting) return;
 
         const cell = (e.target as HTMLElement)?.closest("td, th");
         if (!cell) return;
+        if (!window.selectedCols) return;
 
-        ((window as any).selectedCols as Set<Element>).add(cell);
-        if (((window as any).selectedCols as Set<Element>).size > 1) {
-          ((window as any).selectedCols as Set<Element>).forEach((element) => {
+        window.selectedCols.add(cell);
+        if (window.selectedCols.size > 1) {
+          window.selectedCols.forEach((element) => {
             if (!element.classList.contains('selected')) {
               element.classList.add('selected');
             }
@@ -383,10 +384,10 @@ export class PTTJSContext {
       });
 
       this.plugin.registerDomEvent(table, 'mouseup', () => {
-        (window as any).isSelecting = false;
-        if (!((window as any).selectedCols as Set<Element>)?.size || ((window as any).selectedCols as Set<Element>).size < 2) {
-          (window as any).selectedPage = null;
-          (window as any).selectedCols = null;
+        window.isSelecting = false;
+        if (!window.selectedCols?.size || window.selectedCols.size < 2) {
+          window.selectedPage = null;
+          window.selectedCols = null;
         }
       });
 
